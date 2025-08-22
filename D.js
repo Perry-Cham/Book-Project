@@ -18,24 +18,18 @@ const bookSchema = new mongoose.Schema({
     type: String, // URL of cover image
     required: true,
   },
-  price: {
-    type: Number,
-    required: true,
-    min: 0, // No negative prices
-  },
   genre: {
     type: String,
     required: true,
     trim: true,
   },
-  sypnosis: {
+  synopsis: {
     type: String,
     required: true,
   },
   pageCount: {
     type: Number,
     required: true,
-    min: 1, // book must have at least 1 page
   },
   publishedDate: {
     type: String, // could also be Date, but your example uses "1918"
