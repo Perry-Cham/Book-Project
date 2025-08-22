@@ -11,7 +11,7 @@ const port = 3000;
 
 App.use(cors({
   origin:"http://localhost:5173",
-  credentials:"true"
+  credentials:true
 }))
 App.use(express.urlencoded({extended:true}))
 App.use(express.json())
@@ -61,24 +61,41 @@ try{
   } 
  
 })
-
+App.get('/getsession',async  (req,res) => {
+  const id = req.session.userId;
+  const user = await Users.findOne({_id:id});
+  console.log(id, user, req.session, res.sessionID)
+  if(id && user){
+    res.send({"name": user.name})
+  }else{
+    res.status(404).json({"message":"session not found"})
+  }
+})
+App.get('/logout', (req,res) => {
+  req.session.destroy()
+  res.status(200).json({"message":"session destroyed successfully"})
+})
 App.post('/signup', (req, res) => {
   const user = req.body;
 const nuser =  new Users(user)
   nuser.save().then(() => res.send(200))
 })
+
 App.post('/signin',async (req, res) => {
-  
   const user = req.body;
   try{
   const nuser = await Users.findOne({name: user.name})
   if(user.password == nuser.password){
-    res.status(200).json({"message":"user has been authenticated"})}else{
-      res.status(400)
+    if(user)req.session.userId = nuser.id;
+    res.status(200).json({"message":"user has been authenticated",
+      "name":nuser.name
+    })
+  }else{
+          res.send(400).json({"message": "invalid credentials"})
     }
   }catch(err){
     console.error(err)
-    res.status(400)
+    res.status(500).json({"message": "internal server error"})
   }
 
 })
