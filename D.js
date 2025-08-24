@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 const fs = require('fs')
-mongoose.connect(process.env.MONGO_URI).then(() => console.log("mongoose has connected successfully")).catch(err => console.error(err))
+mongoose.connect(process.env.MONGO_URI_LIVE).then(() => console.log("mongoose has connected successfully")).catch(err => console.error(err))
 
 const bookSchema = new mongoose.Schema({
   title: {
@@ -39,5 +39,16 @@ const bookSchema = new mongoose.Schema({
 let data = JSON.parse(fs.readFileSync('data.json'))
 
 // Create Model
-const Book = mongoose.model("Book", bookSchema);
-Book.insertMany(data.Books).then(() => console.log("Books inserted successfully")).catch((err) => console.error(err))
+const Book = mongoose.model("Book", bookSchema, "books");
+
+async function insert(){
+  try{
+ await Book.insertMany(data.Books)
+ console.log("Books inserted successfully")
+  }catch(err){
+    console.error(err)
+  }
+  mongoose.disconnect();
+}
+
+insert();
