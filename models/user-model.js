@@ -6,10 +6,10 @@ const schema = new mongoose.Schema({
   savedBooks:[{type: mongoose.Schema.Types.ObjectId, ref: 'Book'}],
   currentBooks:[
     {
-    name:String,
+    title:String,
     pageCount:Number,
     page:Number,
-    mainBook:String,
+    mainBook:{type: mongoose.Schema.Types.ObjectId, ref: "Book"},
     history:[{
       date:Date,
       numberOfPages:Number

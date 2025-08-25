@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 const fs = require('fs')
-mongoose.connect(process.env.MONGO_URI_LIVE).then(() => console.log("mongoose has connected successfully")).catch(err => console.error(err))
+mongoose.connect(process.env.MONGO_URI).then(() => console.log("mongoose has connected successfully")).catch(err => console.error(err))
 
 const bookSchema = new mongoose.Schema({
   title: {

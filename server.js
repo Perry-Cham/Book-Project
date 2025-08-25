@@ -9,6 +9,7 @@ const Users = require("./models/user-model")
 const App = express();
 const port = 3000;
 
+mongoose.set('debug',true)
 App.use(cors({
   origin: "http://localhost:5173",
   credentials: true
@@ -133,6 +134,19 @@ App.post('/saveBook/:id', async (req, res) => {
     res.status(500).json({ "message": "internal server error" })
   }
 })
+
+App.post('/setcurrentbook',async (req, res) => {
+try{
+  const user = await Users.findOne({_id:req.session.userId})
+   console.log(user)
+  await Users.updateOne({_id:req.session.userId},{$addToSet:{currentBooks: req.body}})
+  res.status(200).json({"message":"The operation completed successfully", "name": req.body.title})
+}catch(err){
+  console.error(err)
+  res.status(500).json({"message":"internal server error"})
+}
+})
+
 App.get('/getsavedbooks',async (req, res) => {
   try{
  const user = await Users.findOne({_id:req.session.userId}).populate('savedBooks')
