@@ -46,7 +46,7 @@ App.listen(port, () => {
 App.get('/allBooks', async (req, res) => {
   try {
     const books = await Books.find();
-    
+
     res.json(books)
   }
   catch (err) {
@@ -60,7 +60,7 @@ App.get('/download/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const book = await Books.findOne({ _id: id });
-    
+
     res.json(book)
   }
   catch (err) {
@@ -87,28 +87,28 @@ App.post('/signup', async (req, res) => {
   const nuser = new Users(user)
   await nuser.save()
   req.session.userId = nuser._id;
-  
+
   res.status(200).json({ "message": "user has been created" })
 })
 
-App.get('/getsavedbooks',async (req, res) => {
-  try{
- const user = await Users.findOne({_id:req.session.userId}).populate('savedBooks')
-if(user){
-  res.status(200).json(user.savedBooks)
-  
-}
-  }catch (err){
+App.get('/getsavedbooks', async (req, res) => {
+  try {
+    const user = await Users.findOne({ _id: req.session.userId }).populate('savedBooks')
+    if (user) {
+      res.status(200).json(user.savedBooks)
+
+    }
+  } catch (err) {
     console.error(err)
   }
 })
 App.get('/getcurrentbooks', async (req, res) => {
-  try{
-   const books = await Users.findOne({_id:req.session.userId},{currentBooks:1, _id:0})
-   res.status(200).json(books)
-  }catch(err){
+  try {
+    const books = await Users.findOne({ _id: req.session.userId }, { currentBooks: 1, _id: 0 })
+    res.status(200).json(books)
+  } catch (err) {
     console.error(err)
-    res.status(500).json({"message":"internal server error"})
+    res.status(500).json({ "message": "internal server error" })
   }
 })
 App.post('/signin', async (req, res) => {
@@ -117,7 +117,7 @@ App.post('/signin', async (req, res) => {
     const nuser = await Users.findOne({ name: user.name })
     if (user.password == nuser.password) {
       if (user) req.session.userId = nuser._id;
-      
+
       res.status(200).json({
         "message": "user has been authenticated",
         "name": nuser.name
@@ -139,15 +139,16 @@ App.post('/saveBook/:id', async (req, res) => {
     const Book = await Users.findOne({
       _id: req.session.userId
     })
-    
+
     try {
       if (user) {
         await Users.updateOne({ _id: userId }, { $addToSet: { savedBooks: id } })
         res.status(200).json({ "message": "book has been saved" })
       } else {
-        
+
         res.status(500).json({
-          "message": "Error finding user" })
+          "message": "Error finding user"
+        })
       }
 
     } catch (err) {
@@ -161,15 +162,37 @@ App.post('/saveBook/:id', async (req, res) => {
   }
 })
 
-App.post('/setcurrentbook',async (req, res) => {
-try{
-  const user = await Users.findOne({_id:req.session.userId})
-  await Users.updateOne({_id:req.session.userId},{$addToSet:{currentBooks: req.body}})
-  res.status(200).json({"message":"The operation completed successfully", "name": req.body.title})
-}catch(err){
-  console.error(err)
-  res.status(500).json({"message":"internal server error"})
-}
+App.post('/setcurrentbook', async (req, res) => {
+  try {
+    const user = await Users.findOne({ _id: req.session.userId })
+    await Users.updateOne({ _id: req.session.userId }, { $addToSet: { currentBooks: req.body } })
+    await Users.updateOne({ _id: req.session.userId }, { $pull: { savedBooks: req.body.mainBook } })
+    res.status(200).json({ "message": "The operation completed successfully", "name": req.body.title })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ "message": "internal server error" })
+  }
+})
+App.post('/setcurrentpage', async (req, res) => {
+  try {
+    const Books = await Users.findOne({ _id: req.session.userId }, { currentBooks: 1, _id: 0 })
+    const book = Books.currentBooks.find((b) => b._id == req.body.id)
+    let diffInPages = Math.abs(book.page - req.body.pageCount);
+    const historyEntry = {
+      date: new Date(),
+      numberOfPages: Number(diffInPages)
+    }
+    await Users.updateOne({_id:req.session.userId, "currentBooks._id": req.body.id}, {
+      $set : {"currentBooks.$.page" :req.body.pageCount},
+      $push:{"currentBooks.$.history" : historyEntry}
+      })
+
+    res.status(200).json({ "message": "The operation completed successfully", "title": req.body.title, "page": req.body.pageCount })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ "message": "internal server error" })
+  }
+  console.log(req.body)
 })
 App.delete('/deletecurrent/:id', async (req, res) => {
   const id = req.params.id;
@@ -178,18 +201,18 @@ App.delete('/deletecurrent/:id', async (req, res) => {
    res.status(200).json({"message":"The operation completed successfully"})
   }catch(err){
     console.error(err)
-    res.status(500).json({"message":"internal server error"})
+    res.status(500).json({ "message": "internal server error" })
   }
-  
+
 })
 App.delete('/deletesaved/:id', async (req, res) => {
   const id = req.params.id;
-  try{
-   await Users.updateOne({_id:req.session.userId}, {$pull :{savedBooks: req.params.id}})
-   res.status(200).json({"message":"The operation completed successfully"})
-  }catch(err){
+  try {
+    await Users.updateOne({ _id: req.session.userId }, { $pull: { savedBooks: req.params.id } })
+    res.status(200).json({ "message": "The operation completed successfully" })
+  } catch (err) {
     console.error(err)
-    res.status(500).json({"message":"internal server error"})
+    res.status(500).json({ "message": "internal server error" })
   }
-  
+
 })

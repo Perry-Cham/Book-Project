@@ -7,6 +7,7 @@ const schema = new mongoose.Schema({
   currentBooks:[
     {
     title:String,
+    cover:String,
     pageCount:Number,
     page:Number,
     mainBook:{type: mongoose.Schema.Types.ObjectId, ref: "Book"},
