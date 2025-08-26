@@ -7,7 +7,7 @@ require('dotenv').config()
 const Books = require("./models/book-model")
 const Users = require("./models/user-model")
 const App = express();
-const port = 3000;
+const port = process.env.PORT;
 
 const origins = ["http://localhost:5173","https://ps-books.netlify.app"]
 App.use(cors({
