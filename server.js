@@ -9,9 +9,15 @@ const Users = require("./models/user-model")
 const App = express();
 const port = 3000;
 
-
+const origins = ["http://localhost:5173","https://ps-books.netlify.app"]
 App.use(cors({
-  origin: "http://localhost:5173",
+  origin: function(origin,callback){
+    if(!origin || origins.includes(origin)){
+      callback(null, true)
+    }else {
+      callback(new Error('Origin not allowed'))
+    }
+  },
   credentials: true
 }))
 App.use(express.urlencoded({ extended: true }))
@@ -167,7 +173,6 @@ try{
 })
 App.delete('/deletecurrent/:id', async (req, res) => {
   const id = req.params.id;
-  console.log(id)
   try{
    await Users.updateOne({_id:req.session.userId}, {$pull :{currentBooks: {_id: req.params.id}}})
    res.status(200).json({"message":"The operation completed successfully"})
