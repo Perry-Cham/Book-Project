@@ -17,7 +17,8 @@ const schema = new mongoose.Schema({
     }]
     }
     ],
-  readBooks:[{type: mongoose.Schema.Types.ObjectId, ref: 'Book'}]
+  readBooks:[{type: mongoose.Schema.Types.ObjectId, ref: 'Book'}],
+  goals:[{type: mongoose.Schema.Types.ObjectId, ref: 'Goal'}],
 })
 
 const Users = mongoose.model('User', schema)

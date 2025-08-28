@@ -3,9 +3,11 @@ const session = require('express-session');
 const mongoose = require("mongoose");
 const sessionStore = require("connect-mongo")
 const cors = require('cors')
+const {addDays, addWeeks, addMonths, differenceInDays} = require('date-fns')
 require('dotenv').config()
 const Books = require("./models/book-model")
 const Users = require("./models/user-model")
+const Goals = require("./models/goal-model")
 const App = express();
 const port = process.env.PORT;
 
@@ -111,6 +113,8 @@ App.get('/getcurrentbooks', async (req, res) => {
     res.status(500).json({ "message": "internal server error" })
   }
 })
+
+//Post Routes
 App.post('/signin', async (req, res) => {
   const user = req.body;
   try {
@@ -193,6 +197,38 @@ App.post('/setcurrentpage', async (req, res) => {
     res.status(500).json({ "message": "internal server error" })
   }
   console.log(req.body)
+})
+App.post('/setgoal', async (req, res) => {
+  console.log(req.body)
+  try{
+    const startDate =new Date();
+    let endDate;
+    if(req.body.unit == "day"){
+      endDate = addDays(startDate, parseInt(req.body.duration))}
+      else{
+      endDate = addWeeks(startDate, parseInt(req.body.duration))
+    }
+  const goal = {
+  userId:req.session.userId,
+  type:"Reading",
+  hasStreak:false,
+  streakLength:0,
+  numberOfBooks:req.body.numberOfBooks,
+  duration:req.body.duration,
+  progress:0,
+  booksRead:[],
+  startDate:startDate,
+  endDate:endDate,
+  }
+  await Goals.insertOne(goal)
+  const goal2 = await Goals.findOne({userId:req.session.userId})
+  const user = await Users.updateOne({_id: req.session.userId},{$addToSet:{goals: goal2._id}})
+  
+    res.status(200).json({"message":"The operation completed successfully"})
+  }catch(err){
+    console.error(err)
+    res.status(500).json({"message":"Internal Server Error"})
+  }
 })
 App.delete('/deletecurrent/:id', async (req, res) => {
   const id = req.params.id;
