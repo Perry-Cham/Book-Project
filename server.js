@@ -3,7 +3,7 @@ const session = require('express-session');
 const mongoose = require("mongoose");
 const sessionStore = require("connect-mongo")
 const cors = require('cors')
-const {addDays, addWeeks, addMonths, differenceInDays} = require('date-fns')
+const {addDays, addWeeks, addMonths, differenceInDays, differenceInWeeks} = require('date-fns')
 require('dotenv').config()
 const Books = require("./models/book-model")
 const Users = require("./models/user-model")
@@ -113,7 +113,22 @@ App.get('/getcurrentbooks', async (req, res) => {
     res.status(500).json({ "message": "internal server error" })
   }
 })
-
+App.get('/getgoal', async (req, res) => {
+  try{
+  const goal = await Goals.findOne({userId:req.session.userId});
+  const user = await Users.findOne({_id:req.session.userId},{currentBooks:1, _id:0});
+  const currentBooks = user.currentBooks;
+  let daysLeft = differenceInDays( goal.endDate, new Date());
+  const data = {
+    goal:goal,
+    currentBooks:currentBooks,
+    daysLeft:daysLeft}
+  res.status(200).json(data)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({"message":"Internal Server Error"})
+  }
+})
 //Post Routes
 App.post('/signin', async (req, res) => {
   const user = req.body;
@@ -167,6 +182,7 @@ App.post('/saveBook/:id', async (req, res) => {
 })
 
 App.post('/setcurrentbook', async (req, res) => {
+  console.log(req.body)
   try {
     const user = await Users.findOne({ _id: req.session.userId })
     await Users.updateOne({ _id: req.session.userId }, { $addToSet: { currentBooks: req.body } })
@@ -180,6 +196,7 @@ App.post('/setcurrentbook', async (req, res) => {
 App.post('/setcurrentpage', async (req, res) => {
   try {
     const Books = await Users.findOne({ _id: req.session.userId }, { currentBooks: 1, _id: 0 })
+    console.log(Books)
     const book = Books.currentBooks.find((b) => b._id == req.body.id)
     let diffInPages = Math.abs(book.page - req.body.pageCount);
     const historyEntry = {
