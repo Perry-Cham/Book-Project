@@ -11,6 +11,7 @@ const schema = new mongoose.Schema({
   booksRead:Array,
   startDate:Date,
   endDate:Date,
+  complete:Boolean
 })
 
 const Goals = mongoose.model('Goal', schema)
