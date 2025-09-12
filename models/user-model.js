@@ -18,6 +18,7 @@ const schema = new mongoose.Schema({
     }
     ],
   readBooks:[{type: mongoose.Schema.Types.ObjectId, ref: 'Book'}],
+  history:Array,
   goals:[{type: mongoose.Schema.Types.ObjectId, ref: 'Goal'}],
 })
 

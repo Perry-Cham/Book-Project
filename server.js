@@ -7,7 +7,6 @@ const cors = require('cors')
 require('dotenv').config()
 const App = express();
 const port = process.env.PORT;
-const { addDays, addWeeks, addMonths, differenceInDays, differenceInWeeks } = require('date-fns')
 const gRouter = require('./routes/get')
 const pRouter = require('./routes/post')
 const dRouter = require('./routes/delete')

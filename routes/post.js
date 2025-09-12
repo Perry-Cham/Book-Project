@@ -82,6 +82,7 @@ router.post('/setcurrentpage', async (req, res) => {
     })
 
     //If the current page is equal to the page count remove the book from the current books and routerend it to the goal if available
+    readingHistory(req.session.userId, historyEntry)
     if (req.body.pageCount == book.pageCount) {
       await Users.updateOne({ _id: req.session.userId }, { $pull: { currentBooks: { _id: book._id } } })
       let goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
@@ -91,8 +92,8 @@ router.post('/setcurrentpage', async (req, res) => {
       )
 
       //If the nunber of books read in the goals document is equal to the numberOfBooks i.e the users reading target delete the goal from the goals collection and the users goals array
-        goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
-        goal = goalData.goals.find(g => g.type == "Reading")
+      goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
+      goal = goalData.goals.find(g => g.type == "Reading")
       if (goal.booksRead.length === goal.numberOfBooks) {
         await Goals.updateOne({ _id: goal._id }, { $set: { complete: true } })
       }
@@ -108,6 +109,7 @@ router.post('/setgoal', async (req, res) => {
   try {
     const startDate = new Date();
     let endDate;
+    console.log(req.body, startDate)
     if (req.body.unit == "day") {
       endDate = addDays(startDate, parseInt(req.body.duration))
     }
@@ -136,17 +138,19 @@ router.post('/setgoal', async (req, res) => {
     res.status(500).json({ "message": "Internal Server Error" })
   }
 })
+
 router.post('/addcustombook', async (req, res) => {
   const { title, author, pageCount } = req.body;
- 
+
   if (!title || !author || !pageCount) {
     return res.status(400).json({ message: 'Title, author, and page count are required' });
   }
- console.log(req.body)
-  /*try {
+  console.log(req.body)
+  try {
     // Fetch book data from Open Library API
     const query = `title:${encodeURIComponent(title)} author:${encodeURIComponent(author)}`;
     const response = await axios.get(`https://openlibrary.org/search.json?q=${query}&limit=1&fields=title,author_name,cover_i`);
+    console.log(response.data)
     const docs = response.data.docs;
 
     let coverUrl = null;
@@ -167,16 +171,15 @@ router.post('/addcustombook', async (req, res) => {
       cover: coverUrl, // New field for cover URL; add to your frontend <img> tags
       // Add other fields if needed, e.g., mainBook: null for custom books
     };
-
     // Add to user's currentBooks
     console.log(newBook)
-  await Users.updateOne({ _id: req.session.userId }, { $addToSet: { currentBooks: newBook } });
+    await Users.updateOne({ _id: req.session.userId }, { $addToSet: { currentBooks: newBook } });
 
-    res.status(200).json({ message: 'Custom book added successfully', book: newBook });
+    res.status(200).json({ message: 'Custom book added successfully' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
-  }*/
+  }
 });
 
 router.post('/signup', async (req, res) => {
@@ -187,4 +190,29 @@ router.post('/signup', async (req, res) => {
 
   res.status(200).json({ "message": "user has been created" })
 })
+
+async function readingHistory(userId, his) {
+  const user = await Users.findOne({ _id: userId }, { history: 1 })
+  if(user && !user.history){
+    user.history = [],
+    user.save()
+  }
+  const { history } = user;
+  let matchingNotFound = true;
+//  console.log(history, user, his)
+  for (const child of history) {
+    const cDate = new Date(child.date)
+    const oldDate = `${cDate.getDate()}-${cDate.getMonth()}-${cDate.getFullYear()}`
+    const currDate = `${his.date.getDate()}-${his.date.getMonth()}-${his.date.getFullYear()}`
+    if (oldDate === currDate) {
+      const aggPages = child.numberOfPages + his.numberOfPages;
+      await Users.updateOne({ _id: userId, 'history._id': child._id }, { $set: { 'history.$.numberOfPages': aggPages } })
+      matchingNotFound = false
+      break;
+    }
+  }
+  console.log(matchingNotFound)
+  matchingNotFound && await Users.updateOne({ _id: userId }, { $addToSet: { history: his } });
+}
+
 module.exports = router;

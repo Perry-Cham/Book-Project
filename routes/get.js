@@ -90,5 +90,16 @@ router.get('/getgoal', async (req, res) => {
     res.status(500).json({ "message": "Internal Server Error" })
   }
 })
+router.get('/gethistory', async (req, res) => {
+  try{
+const user = Users.findOne({_id:req.session.id},{history:1})
+ const {history} = user;
+ user.history && res.status(200).json(history)
+  }catch (err) {
+    console.error(err)
+    res.status(500).json({ "message": "Internal Server Error" })
+  }
+ 
+})
 //Post Routes
 module.exports = router;
