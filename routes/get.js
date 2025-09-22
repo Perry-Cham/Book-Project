@@ -69,8 +69,10 @@ router.get('/getcurrentbooks', async (req, res) => {
 router.get('/getgoal', async (req, res) => {
   try {
     const goal = await Goals.findOne({ userId: req.session.userId });
-    const user = await Users.findOne({ _id: req.session.userId }, { currentBooks: 1, _id: 0 });
+    if(goal){
+      const user = await Users.findOne({ _id: req.session.userId }, { currentBooks: 1, _id: 0 });
     const currentBooks = user.currentBooks;
+    console.log(goal)
     let daysLeft = differenceInDays(goal.endDate, new Date());
     const data = {
       goal: goal,
@@ -85,6 +87,10 @@ router.get('/getgoal', async (req, res) => {
       return;
     }
     res.status(200).json(data)
+    }else{
+      
+    }
+    
   } catch (err) {
     console.error(err)
     res.status(500).json({ "message": "Internal Server Error" })
@@ -92,7 +98,8 @@ router.get('/getgoal', async (req, res) => {
 })
 router.get('/gethistory', async (req, res) => {
   try{
-const user = Users.findOne({_id:req.session.id},{history:1})
+const user = await Users.findOne({_id:req.session.userId},{history:1})
+console.log(req.session)
  const {history} = user;
  user.history && res.status(200).json(history)
   }catch (err) {

@@ -10,11 +10,7 @@ const schema = new mongoose.Schema({
     cover:String,
     pageCount:Number,
     page:Number,
-    mainBook:{type: mongoose.Schema.Types.ObjectId, ref: "Book"},
-    history:[{
-      date:Date,
-      numberOfPages:Number
-    }]
+    mainBook:{type: mongoose.Schema.Types.ObjectId, ref: "Book"}
     }
     ],
   readBooks:[{type: mongoose.Schema.Types.ObjectId, ref: 'Book'}],

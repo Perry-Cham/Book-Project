@@ -1,5 +1,5 @@
 const express = require('express');
-const { addDays, addWeeks, addMonths, differenceInDays, differenceInWeeks } = require('date-fns')
+const { addDays, addWeeks, addMonths, differenceInDays, differenceInWeeks, startOfWeek, endOfWeek, isSameWeek, format } = require('date-fns')
 const axios = require('axios')
 const Books = require("../models/book-model")
 const Users = require("../models/user-model")
@@ -77,25 +77,27 @@ router.post('/setcurrentpage', async (req, res) => {
       numberOfPages: diffInPages
     }
     await Users.updateOne({ _id: req.session.userId, "currentBooks._id": req.body.id }, {
-      $set: { "currentBooks.$.page": req.body.pageCount },
-      $push: { "currentBooks.$.history": historyEntry }
+      $set: { "currentBooks.$.page": req.body.pageCount }
     })
-
-    //If the current page is equal to the page count remove the book from the current books and routerend it to the goal if available
+    //Push the number of pages read snd the date to history array on the users object
     readingHistory(req.session.userId, historyEntry)
+
+    //If the current page is equal to the page count remove the book from the current books and upend it to the goal if available
     if (req.body.pageCount == book.pageCount) {
       await Users.updateOne({ _id: req.session.userId }, { $pull: { currentBooks: { _id: book._id } } })
       let goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
-      let goal = goalData.goals.find(g => g.type == "Reading")
-      await Goals.updateOne({ _id: goal._id },
-        { $push: { booksRead: book } }
-      )
+      if (goalData.goals.length > 0) {
+        let goal = goalData.goals.find(g => g.type == "Reading")
+        await Goals.updateOne({ _id: goal._id },
+          { $push: { booksRead: book } }
+        )
 
-      //If the nunber of books read in the goals document is equal to the numberOfBooks i.e the users reading target delete the goal from the goals collection and the users goals array
-      goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
-      goal = goalData.goals.find(g => g.type == "Reading")
-      if (goal.booksRead.length === goal.numberOfBooks) {
-        await Goals.updateOne({ _id: goal._id }, { $set: { complete: true } })
+        //If the nunber of books read in the goals document is equal to the numberOfBooks i.e the users reading target delete the goal from the goals collection and the users goals array
+        goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
+        goal = goalData.goals.find(g => g.type == "Reading")
+        if (goal.booksRead.length === goal.numberOfBooks) {
+          await Goals.updateOne({ _id: goal._id }, { $set: { complete: true } })
+        }
       }
     }
     res.status(200).json({ "message": "The operation completed successfully", "title": book.title, "page": book.page })
@@ -191,28 +193,64 @@ router.post('/signup', async (req, res) => {
   res.status(200).json({ "message": "user has been created" })
 })
 
+// Replace the readingHistory function with this fixed version
 async function readingHistory(userId, his) {
-  const user = await Users.findOne({ _id: userId }, { history: 1 })
-  if(user && !user.history){
-    user.history = [],
-    user.save()
-  }
-  const { history } = user;
-  let matchingNotFound = true;
-//  console.log(history, user, his)
-  for (const child of history) {
-    const cDate = new Date(child.date)
-    const oldDate = `${cDate.getDate()}-${cDate.getMonth()}-${cDate.getFullYear()}`
-    const currDate = `${his.date.getDate()}-${his.date.getMonth()}-${his.date.getFullYear()}`
-    if (oldDate === currDate) {
-      const aggPages = child.numberOfPages + his.numberOfPages;
-      await Users.updateOne({ _id: userId, 'history._id': child._id }, { $set: { 'history.$.numberOfPages': aggPages } })
-      matchingNotFound = false
-      break;
+  try {
+    // Get user with history
+    const user = await Users.findOne({ _id: userId });
+    if (!user.history) {
+      user.history = [];
+      await user.save();
     }
+
+    // Check if we need to reset for a new week
+    const now = new Date();
+    if (user.history.length > 0) {
+      const lastEntryDate = new Date(user.history[user.history.length - 1].date);
+      
+      // Compare if the current date is in a different week than the last entry
+      if (!isSameWeek(now, lastEntryDate, { weekStartsOn: 0 })) { // 0 = Sunday
+        // Reset history for new week
+        await Users.updateOne({ _id: userId }, { $set: { history: [] } });
+      }
+    }
+
+    // Check for existing entry for today
+    let existingEntryIndex = -1;
+    const todayFormatted = format(now, 'yyyy-MM-dd');
+    
+    for (let i = 0; i < user.history.length; i++) {
+      const entryDate = format(new Date(user.history[i].date), 'yyyy-MM-dd');
+      if (entryDate === todayFormatted) {
+        existingEntryIndex = i;
+        break;
+      }
+    }
+
+    if (existingEntryIndex >= 0) {
+      // Update existing entry
+      const updatedPages = user.history[existingEntryIndex].numberOfPages + his.numberOfPages;
+      await Users.updateOne(
+        { _id: userId, "history._id": user.history[existingEntryIndex]._id },
+        { $set: { "history.$.numberOfPages": updatedPages } }
+      );
+    } else {
+      // Add new entry
+      await Users.updateOne(
+        { _id: userId },
+        { $push: { history: his } }
+      );
+    }
+  } catch (err) {
+    console.error("Error in readingHistory:", err);
+    throw err;
   }
-  console.log(matchingNotFound)
-  matchingNotFound && await Users.updateOne({ _id: userId }, { $addToSet: { history: his } });
 }
+
+//Routes to to do with study functions
+router.post('/settimetable', (req,res) =>{
+  console.log(req.body)
+  res.status(200).json({"message":"The operation completed successfully"})
+})
 
 module.exports = router;
