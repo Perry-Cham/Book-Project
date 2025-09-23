@@ -4,7 +4,17 @@ const axios = require('axios')
 const Books = require("../models/book-model")
 const Users = require("../models/user-model")
 const Goals = require("../models/goal-model")
+const StudyInfo = require("../models/study-model")
 const router = express.Router()
+
+router.post('/signup', async (req, res) => {
+  const user = req.body;
+  const nuser = new Users(user)
+  await nuser.save()
+  req.session.userId = nuser._id;
+
+  res.status(200).json({ "message": "user has been created" })
+})
 
 router.post('/signin', async (req, res) => {
   const user = req.body;
@@ -184,16 +194,8 @@ router.post('/addcustombook', async (req, res) => {
   }
 });
 
-router.post('/signup', async (req, res) => {
-  const user = req.body;
-  const nuser = new Users(user)
-  await nuser.save()
-  req.session.userId = nuser._id;
 
-  res.status(200).json({ "message": "user has been created" })
-})
-
-// Replace the readingHistory function with this fixed version
+//This Function calculates reading history
 async function readingHistory(userId, his) {
   try {
     // Get user with history
@@ -247,10 +249,19 @@ async function readingHistory(userId, his) {
   }
 }
 
-//Routes to to do with study functions
-router.post('/settimetable', (req,res) =>{
-  console.log(req.body)
+//Routes to to do with studying functionality
+router.post('/settimetable', async(req,res) =>{
+  try{
+  const data = new StudyInfo({
+    userId:req.session.userId,
+    timetable:req.body
+  })
+  await data.save()
   res.status(200).json({"message":"The operation completed successfully"})
+  }catch(err){
+    console.error(err)
+    res.status(500).json({"message":"Internal Server Error"})
+  }
 })
 
 module.exports = router;

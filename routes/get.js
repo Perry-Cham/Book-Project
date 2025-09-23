@@ -3,6 +3,7 @@ const { addDays, addWeeks, addMonths, differenceInDays, differenceInWeeks } = re
 const Books = require("../models/book-model")
 const Users = require("../models/user-model")
 const Goals = require("../models/goal-model")
+const StudyInfo = require("../models/study-model")
 
 const router = express.Router()
 
@@ -108,5 +109,17 @@ console.log(req.session)
   }
  
 })
-//Post Routes
+//Routes to do with studying or study functions 
+router.get('/gettimetable', async(req,res) =>{
+  try{
+    const timetable = await StudyInfo.findOne({userId:req.session.userId},{timetable:1, _id:0})
+    if(timetable){
+      res.status(200).json([...timetable.timetable])
+    }else{
+      res.status(404).json({"message":"User does not have a study timetable"})
+    }
+  }catch(err){
+    console.error(err)
+  }
+})
 module.exports = router;
