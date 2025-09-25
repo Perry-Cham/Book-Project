@@ -10,6 +10,7 @@ const port = process.env.PORT;
 const gRouter = require('./routes/get')
 const pRouter = require('./routes/post')
 const dRouter = require('./routes/delete')
+const patchRouter = require('./routes/patch')
 
 const origins = ["http://localhost:5173", "https://ps-books.netlify.app"]
 App.use(cors({
@@ -44,6 +45,7 @@ App.use(session({
 App.use('/', gRouter)
 App.use('/', pRouter)
 App.use('/', dRouter)
+App.use('/', patchRouter)
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("Mongoose is connected")
