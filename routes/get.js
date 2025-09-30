@@ -112,7 +112,7 @@ console.log(req.session)
 //Routes to do with studying or study functions 
 router.get('/gettimetable', async(req,res) =>{
   try{
-    const timetable = await StudyInfo.findOne({userId:req.session.userId},{timetable:1, _id:0})
+    const timetable = await StudyInfo.findOne({userId:req.session.userId},{timetable:1,_id:0})
     if(timetable){
       res.status(200).json([...timetable.timetable])
     }else{
@@ -120,6 +120,20 @@ router.get('/gettimetable', async(req,res) =>{
     }
   }catch(err){
     console.error(err)
+    res.status(404).json({"message":"User does not have a study timetable"})
+  }
+})
+router.get('/getstudygoal', async(req,res) =>{
+  try{
+    const studyGoal = await StudyInfo.findOne({userId:req.session.userId},{goals:1,_id:0})
+    if(studyGoal && studyGoal.goals.length > 0){
+      res.status(200).json([...studyGoal.goals])
+    }else{
+      res.status(404).json({"message":"User does not have a study timetable"})
+    }
+  }catch(err){
+    console.error(err)
+    res.status(404).json({"message":"User does not have a study timetable"})
   }
 })
 module.exports = router;

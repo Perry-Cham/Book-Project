@@ -16,5 +16,14 @@ router.patch('/deletetimetable',async (req,res) => {
     res.status(500).json({message:"the operation could bot be completed"})
   }
 })
-
+router.patch('/deletestudygoal', async(req, res) => {
+  console.log("Hello dev", req.body.subject)
+  try{
+    await StudyInfo.updateOne({userId:req.session.userId},{$pull : {goals : {subject: req.body.subject}}})
+    res.status(200).json({message:"the operation completed successfully"})
+  }catch(err){
+    console.log(err)
+    res.status(500).json({message:"the operation could bot be completed"})
+  }
+})
 module.exports = router
