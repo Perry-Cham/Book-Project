@@ -10,7 +10,7 @@ const router = express.Router()
 router.get('/allBooks', async (req, res) => {
   try {
     const books = await Books.find();
-
+checkGenre(books)
     res.json(books)
   }
   catch (err) {
@@ -136,4 +136,19 @@ router.get('/getstudygoal', async(req,res) =>{
     res.status(404).json({"message":"User does not have a study timetable"})
   }
 })
+function checkGenre(data){
+  const Data = data
+  const genres = []
+  for (let Book of data){
+    Book = Book.toObject()
+      const genre = genres.find(b => b.genre === Book.genre)
+      if(genre){
+        genre.bookCount++
+      }else{
+        const entry = {genre: Book.genre, bookCount:1}
+        genres.push(entry)
+      }
+  }
+  console.log(genres)
+}
 module.exports = router;

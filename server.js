@@ -47,10 +47,12 @@ App.use('/', pRouter)
 App.use('/', dRouter)
 App.use('/', patchRouter)
 
-mongoose.connect(process.env.MONGO_URI).then(() => {
+async function connectDB(){
+await mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("Mongoose is connected")
 })
-
+}
+connectDB()
 App.listen(port,"0.0.0.0", () => {
   console.log("The server is listening on port" + port)
 })
