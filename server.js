@@ -38,7 +38,7 @@ App.use(session({
     maxAge: 1000 * 60 * 60 * 72,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : undefined,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   }
 }));
 
