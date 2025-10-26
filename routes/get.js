@@ -39,7 +39,7 @@ router.get('/getsession', async (req, res) => {
   if (id && user) {
     res.send({ "name": user.name })
   } else {
-    res.status(404).json({ "message": "session not found" })
+    res.status(404).json({ "message": `session has not been found, session id is ${req.session.userId}` })
   }
 })
 router.get('/logout', (req, res) => {
