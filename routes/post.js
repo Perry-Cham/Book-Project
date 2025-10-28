@@ -43,14 +43,11 @@ router.post('/signin', async (req, res) => {
     res.status(500).json({ "message": "internal server error" })
   }
 })
-router.post('/saveBook/:id', async (req, res) => {
+router.post('/saveBook/:id',auth, async (req, res) => {
   const id = req.params.id;
-  const userId = req.session.userId;
+  const userId = req.auth.userId;
   const user = await Users.findOne({ _id: userId })
   try {
-    const Book = await Users.findOne({
-      _id: req.session.userId
-    })
 
     try {
       if (user) {
@@ -74,36 +71,36 @@ router.post('/saveBook/:id', async (req, res) => {
   }
 })
 
-router.post('/setcurrentbook', async (req, res) => {
+router.post('/setcurrentbook',auth, async (req, res) => {
   try {
-    const user = await Users.findOne({ _id: req.session.userId })
-    await Users.updateOne({ _id: req.session.userId }, { $addToSet: { currentBooks: req.body } })
-    await Users.updateOne({ _id: req.session.userId }, { $pull: { savedBooks: req.body.mainBook } })
+    const user = await Users.findOne({ _id: req.auth.userId })
+    await Users.updateOne({ _id: req.auth.userId }, { $addToSet: { currentBooks: req.body } })
+    await Users.updateOne({ _id: req.auth.userId }, { $pull: { savedBooks: req.body.mainBook } })
     res.status(200).json({ "message": "The operation completed successfully", "name": req.body.title })
   } catch (err) {
     console.error(err)
     res.status(500).json({ "message": "internal server error" })
   }
 })
-router.post('/setcurrentpage', async (req, res) => {
+router.post('/setcurrentpage',auth, async (req, res) => {
   try {
-    const Books = await Users.findOne({ _id: req.session.userId }, { currentBooks: 1, _id: 0 })
+    const Books = await Users.findOne({ _id: req.auth.userId }, { currentBooks: 1, _id: 0 })
     const book = Books.currentBooks.find((b) => b._id == req.body.id)
     let diffInPages = Math.abs(req.body.pageCount - book.page);
     const historyEntry = {
       date: new Date(),
       numberOfPages: diffInPages
     }
-    await Users.updateOne({ _id: req.session.userId, "currentBooks._id": req.body.id }, {
+    await Users.updateOne({ _id: req.auth.userId, "currentBooks._id": req.body.id }, {
       $set: { "currentBooks.$.page": req.body.pageCount }
     })
     //Push the number of pages read snd the date to history array on the users object
-    readingHistory(req.session.userId, historyEntry)
+    readingHistory(req.auth.userId, historyEntry)
 
     //If the current page is equal to the page count remove the book from the current books and upend it to the goal if available
     if (req.body.pageCount == book.pageCount) {
-      await Users.updateOne({ _id: req.session.userId }, { $pull: { currentBooks: { _id: book._id } } })
-      let goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
+      await Users.updateOne({ _id: req.auth.userId }, { $pull: { currentBooks: { _id: book._id } } })
+      let goalData = await Users.findOne({ _id: req.auth.userId }, { goals: 1 }).populate("goals")
       if (goalData.goals.length > 0) {
         let goal = goalData.goals.find(g => g.type == "Reading")
         await Goals.updateOne({ _id: goal._id },
@@ -111,7 +108,7 @@ router.post('/setcurrentpage', async (req, res) => {
         )
 
         //If the nunber of books read in the goals document is equal to the numberOfBooks i.e the users reading target delete the goal from the goals collection and the users goals array
-        goalData = await Users.findOne({ _id: req.session.userId }, { goals: 1 }).populate("goals")
+        goalData = await Users.findOne({ _id: req.auth.userId }, { goals: 1 }).populate("goals")
         goal = goalData.goals.find(g => g.type == "Reading")
         if (goal.booksRead.length === goal.numberOfBooks) {
           await Goals.updateOne({ _id: goal._id }, { $set: { complete: true } })
@@ -125,7 +122,7 @@ router.post('/setcurrentpage', async (req, res) => {
   }
 })
 
-router.post('/setgoal', async (req, res) => {
+router.post('/setgoal',auth, async (req, res) => {
   try {
     const startDate = new Date();
     let endDate;
@@ -137,7 +134,7 @@ router.post('/setgoal', async (req, res) => {
       endDate = addWeeks(startDate, parseInt(req.body.duration))
     }
     const goal = {
-      userId: req.session.userId,
+      userId: req.auth.userId,
       type: "Reading",
       hasStreak: false,
       streakLength: 0,
@@ -149,8 +146,8 @@ router.post('/setgoal', async (req, res) => {
       endDate: endDate,
     }
     await Goals.insertOne(goal)
-    const goal2 = await Goals.findOne({ userId: req.session.userId })
-    const user = await Users.updateOne({ _id: req.session.userId }, { $addToSet: { goals: goal2._id } })
+    const goal2 = await Goals.findOne({ userId: req.auth.userId })
+    const user = await Users.updateOne({ _id: req.auth.userId }, { $addToSet: { goals: goal2._id } })
 
     res.status(200).json({ "message": "The operation completed successfully" })
   } catch (err) {
@@ -159,7 +156,7 @@ router.post('/setgoal', async (req, res) => {
   }
 })
 
-router.post('/addcustombook', async (req, res) => {
+router.post('/addcustombook',auth, async (req, res) => {
   const { title, author, pageCount } = req.body;
 
   if (!title || !author || !pageCount) {
@@ -193,7 +190,7 @@ router.post('/addcustombook', async (req, res) => {
     };
     // Add to user's currentBooks
     console.log(newBook)
-    await Users.updateOne({ _id: req.session.userId }, { $addToSet: { currentBooks: newBook } });
+    await Users.updateOne({ _id: req.auth.userId }, { $addToSet: { currentBooks: newBook } });
 
     res.status(200).json({ message: 'Custom book added successfully' });
   } catch (err) {
@@ -260,11 +257,11 @@ async function readingHistory(userId, his) {
 //Routes to to do with studying functionality
 router.post('/settimetable', async (req, res) => {
   try {
-    const checkOldTimetable = await StudyInfo.findOne({ userId: req.session.userId })
+    const checkOldTimetable = await StudyInfo.findOne({ userId: req.auth.userId })
     if (checkOldTimetable.timetable.length > 0) { return res.status(500).json({ "message": "Timetable already exists" }) } else {
       if (!checkOldTimetable) {
         const data = new StudyInfo({
-          userId: req.session.userId,
+          userId: req.auth.userId,
           timetable: req.body
         })
         await data.save()
@@ -282,7 +279,7 @@ router.post('/settimetable', async (req, res) => {
 router.post('/setstudygoal', async (req, res) => {
   console.log(req.body)
   try {
-    await StudyInfo.updateOne({ userId: req.session.userId }, { $addToSet: { goals: req.body } })
+    await StudyInfo.updateOne({ userId: req.auth.userId }, { $addToSet: { goals: req.body } })
     res.status(200).json({ "message": "The operation completed successfully" })
   } catch (error) {
     console.error(error)
