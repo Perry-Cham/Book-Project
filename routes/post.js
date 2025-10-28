@@ -5,15 +5,22 @@ const Books = require("../models/book-model")
 const Users = require("../models/user-model")
 const Goals = require("../models/goal-model")
 const StudyInfo = require("../models/study-model")
+const { expressjwt: expressJwt } = require('express-jwt');
+const jwt = require('jsonwebtoken')
+const auth = expressJwt({
+  secret: process.env.JWT_KEY,
+  algorithms: ['HS256'],
+});
+
 const router = express.Router()
 
 router.post('/signup', async (req, res) => {
   const user = req.body;
   const nuser = new Users(user)
   await nuser.save()
-  req.session.userId = nuser._id;
+ const token = jwt.sign({ userId: nuser._id }, process.env.JWT_KEY, { expiresIn: '72h' })
 
-  res.status(200).json({ "message": "user has been created" })
+  res.status(200).json({ "message": "user has been created", "token": token })
 })
 
 router.post('/signin', async (req, res) => {
@@ -21,11 +28,12 @@ router.post('/signin', async (req, res) => {
   try {
     const nuser = await Users.findOne({ name: user.name })
     if (user.password == nuser.password) {
-      if (user) req.session.userId = nuser._id;
+     const token = jwt.sign({ userId: nuser._id }, process.env.JWT_KEY, { expiresIn: '1h' })
 
       res.status(200).json({
         "message": "user has been authenticated",
-        "name": nuser.name
+        "name": nuser.name,
+        "token": token
       })
     } else {
       res.send(400).json({ "message": "invalid credentials" })
