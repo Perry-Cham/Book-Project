@@ -255,7 +255,7 @@ async function readingHistory(userId, his) {
 }
 
 //Routes to to do with studying functionality
-router.post('/settimetable', async (req, res) => {
+router.post('/settimetable',auth, async (req, res) => {
   try {
     const checkOldTimetable = await StudyInfo.findOne({ userId: req.auth.userId })
     if (checkOldTimetable.timetable.length > 0) { return res.status(500).json({ "message": "Timetable already exists" }) } else {
@@ -276,10 +276,17 @@ router.post('/settimetable', async (req, res) => {
     res.status(500).json({ "message": "Internal Server Error" })
   }
 })
-router.post('/setstudygoal', async (req, res) => {
+router.post('/setstudygoal',auth, async (req, res) => {
   console.log(req.body)
   try {
-    await StudyInfo.updateOne({ userId: req.auth.userId }, { $addToSet: { goals: req.body } })
+    const entry =  await StudyInfo.findOne({ userId: req.auth.userId });
+    if(entry){await StudyInfo.updateOne({ userId: req.auth.userId }, { $addToSet: { goals: req.body } })}else{
+      const nEntry = new StudyInfo({
+        userId: req.auth.userId,
+        goals:req.body
+      })
+      await nEntry.save()
+    }
     res.status(200).json({ "message": "The operation completed successfully" })
   } catch (error) {
     console.error(error)

@@ -14,30 +14,32 @@ const auth = expressJwt({
   secret: process.env.JWT_KEY,
   algorithms: ['HS256'],
 });
-router.patch('/deletetimetable',auth, async (req,res) => {
-  try{
-    await StudyInfo.updateOne({userId:req.auth.userId},{$set : {timetable: []}})
-    res.status(200).json({message:"the operation completed successfully"})
-  }catch(err){
-    console.log(err)
-    res.status(500).json({message:"the operation could bot be completed"})
+function errorResponse(err, res, msg = "the operation could bot be completed", status = 500) {
+  console.log(err)
+  res.status(status).json({ message: msg })
+}
+router.patch('/deletetimetable', auth, async (req, res) => {
+  try {
+    await StudyInfo.updateOne({ userId: req.auth.userId }, { $set: { timetable: [] } })
+    res.status(200).json({ message: "the operation completed successfully" })
+  } catch (err) {
+    errorResponse(err, res)
   }
 })
-router.patch('/deletestudygoal',auth,  async(req, res) => {
+router.patch('/deletestudygoal', auth, async (req, res) => {
   console.log("Hello dev", req.body.subject)
-  try{
-    await StudyInfo.updateOne({userId:req.auth.userId},{$pull : {goals : {subject: req.body.subject}}})
-    res.status(200).json({message:"the operation completed successfully"})
-  }catch(err){
-    console.log(err)
-    res.status(500).json({message:"the operation could bot be completed"})
+  try {
+    await StudyInfo.updateOne({ userId: req.auth.userId }, { $pull: { goals: { subject: req.body.subject } } })
+    res.status(200).json({ message: "the operation completed successfully" })
+  } catch (err) {
+    errorResponse(err, res)
   }
 })
-router.patch('/syncbooks',auth, upload.array('books[]'), async (req, res) => {
+router.patch('/syncbooks', auth, upload.array('books[]'), async (req, res) => {
   try {
     const files = req.files // Array of uploaded files
     const booksData = JSON.parse(req.body.books) // Book metadata
-    
+
     console.log("Files received:", files?.length)
     console.log("Books data:", booksData)
     files.forEach((file, index) => console.log(file))
@@ -47,6 +49,17 @@ router.patch('/syncbooks',auth, upload.array('books[]'), async (req, res) => {
   } catch (err) {
     console.error('Error in /syncbooks:', err)
     res.status(500).json({ message: "Operation failed", error: err.message })
+  }
+})
+router.patch('/completegoal', auth, async (req, res) => {
+  console.log(req.body, req.auth.userId)
+  try {
+    const userId = req.auth.userId
+    await StudyInfo.updateOne({ userId: req.auth.userId, 'goals.$.subject': req.body.subject }, { $set: { 'goals.$.topics': req.body.topics } })
+    console.log(subject)
+    res.status(200).json({ message: "the operation completed successfully" })
+  } catch (error) {
+    errorResponse(err, res)
   }
 })
 module.exports = router
