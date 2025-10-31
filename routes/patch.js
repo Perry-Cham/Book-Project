@@ -35,14 +35,26 @@ router.patch('/deletestudygoal', auth, async (req, res) => {
     errorResponse(err, res)
   }
 })
-router.patch('/syncbooks', auth, upload.array('books[]'), async (req, res) => {
+router.patch('/syncbooks', auth, upload.array('books'), async (req, res) => {
   try {
     const files = req.files // Array of uploaded files
     const booksData = JSON.parse(req.body.books) // Book metadata
-
-    console.log("Files received:", files?.length)
-    console.log("Books data:", booksData)
-    files.forEach((file, index) => console.log(file))
+for (const book of booksData){
+  const entry = {...book}
+  delete entry.filePath
+  delete entry.synced
+  entry.title = entry.name || entry.filename;
+  console.log(entry)
+  if(entry.fileType == 'epub'){
+    delete entry.page
+    delete entry.totalPages
+  }else if(entry.fileType == 'pdf'){
+    delete entry.epubcfi
+  }
+ const test = await Users.findOneAndUpdate({_id:req.auth.userId},{$addToSet : {
+    currentBooks: entry
+  }})
+}
 
 
     res.status(200).json({ message: "Books synced successfully" })

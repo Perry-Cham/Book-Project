@@ -7,11 +7,24 @@ const schema = new mongoose.Schema({
   currentBooks:[
     {
     title:String,
-    cover:String,
+    cover:String || null,
     pageCount:Number,
     page:Number,
     mainBook:{type: mongoose.Schema.Types.ObjectId, ref: "Book"},
-    fileType:String
+    fileType:String,
+    epubcfi:String,
+    progress:Number,
+    file: {
+        provider: { type: String },
+        bucket: { type: String },    
+        key: { type: String },            
+        url: { type: String },      
+        contentType: { type: String },
+        size: { type: Number },
+        etag: { type: String },    
+        uploadedAt: { type: Date, default: Date.now },
+        metadata: { type: mongoose.Schema.Types.Mixed } 
+      }
     }
     ],
   readBooks:[{type: mongoose.Schema.Types.ObjectId, ref: 'Book'}],

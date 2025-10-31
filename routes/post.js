@@ -94,7 +94,7 @@ router.post('/setcurrentpage',auth, async (req, res) => {
     await Users.updateOne({ _id: req.auth.userId, "currentBooks._id": req.body.id }, {
       $set: { "currentBooks.$.page": req.body.pageCount }
     })
-    //Push the number of pages read snd the date to history array on the users object
+    //Push the number of pages read and the date to history array on the users object
     readingHistory(req.auth.userId, historyEntry)
 
     //If the current page is equal to the page count remove the book from the current books and upend it to the goal if available
