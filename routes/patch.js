@@ -40,28 +40,55 @@ router.patch('/syncbooks', auth, upload.array('books'), async (req, res) => {
     const files = req.files // Array of uploaded files
     const booksData = JSON.parse(req.body.books) // Book metadata
     console.log(booksData)
-for (const book of booksData){
-  const entry = {...book}
-  delete entry.filePath
-  delete entry.synced
-  entry.title = entry.name || entry.filename;
-  if(entry.fileType == 'epub'){
-    delete entry.page
-    delete entry.totalPages
-  }else if(entry.fileType == 'pdf'){
-    entry.pageCount = entry.totalPages
-    delete entry.epubcfi
-  }
- const test = await Users.findOneAndUpdate({_id:req.auth.userId},{$addToSet : {
-    currentBooks: entry
-  }})
-}
+    for (const book of booksData) {
+      const entry = { ...book }
+      delete entry.filePath
+      delete entry.synced
+      entry.title = entry.name || entry.filename;
+      if (entry.fileType == 'epub') {
+        delete entry.page
+        delete entry.totalPages
+      } else if (entry.fileType == 'pdf') {
+        entry.pageCount = entry.totalPages
+        delete entry.epubcfi
+      }
+      const test = await Users.findOneAndUpdate({ _id: req.auth.userId }, {
+        $addToSet: {
+          currentBooks: entry
+        }
+      })
+    }
 
 
     res.status(200).json({ message: "Books synced successfully" })
   } catch (err) {
     console.error('Error in /syncbooks:', err)
     res.status(500).json({ message: "Operation failed", error: err.message })
+  }
+})
+router.patch('/syncpages', auth, async (req, res) => {
+  try {
+    const { location, page, name, type, progress } = req.body
+    const userId = req.auth.userId;
+    console.log(req.body)
+    if (type === "epub") {
+      await Users.updateOne({ _id: userId, 'currentBooks.title': name }, {
+        $set: {
+          'currentBooks.$.epubcfi': location,
+          'currentBooks.$.progress': progress
+        }
+      })
+    } else if (type === "pdf") {
+      await Users.updateOne({ _id: userId, 'currentBooks.title': name }, {
+        $set: {
+          'currentBooks.$.page': page,
+          'currentBooks.$.progress': progress
+        }
+      })
+    }
+    res.status(200).json({ message: "the operation completed successfully" })
+  } catch (error) {
+    errorResponse(err, res)
   }
 })
 router.patch('/completegoal', auth, async (req, res) => {
