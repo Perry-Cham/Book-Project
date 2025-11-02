@@ -39,16 +39,17 @@ router.patch('/syncbooks', auth, upload.array('books'), async (req, res) => {
   try {
     const files = req.files // Array of uploaded files
     const booksData = JSON.parse(req.body.books) // Book metadata
+    console.log(booksData)
 for (const book of booksData){
   const entry = {...book}
   delete entry.filePath
   delete entry.synced
   entry.title = entry.name || entry.filename;
-  console.log(entry)
   if(entry.fileType == 'epub'){
     delete entry.page
     delete entry.totalPages
   }else if(entry.fileType == 'pdf'){
+    entry.pageCount = entry.totalPages
     delete entry.epubcfi
   }
  const test = await Users.findOneAndUpdate({_id:req.auth.userId},{$addToSet : {

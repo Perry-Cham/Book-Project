@@ -27,8 +27,9 @@ router.post('/signin', async (req, res) => {
   const user = req.body;
   try {
     const nuser = await Users.findOne({ name: user.name })
-    if (user.password == nuser.password) {
-     const token = jwt.sign({ userId: nuser._id }, process.env.JWT_KEY, { expiresIn: '1h' })
+    if(!nuser) return res.status(404).json({'message': "USER_NOT_FOUND"})
+    if (user && user.password == nuser.password) {
+     const token = jwt.sign({ userId: nuser._id }, process.env.JWT_KEY, { expiresIn: '72h' })
 
       res.status(200).json({
         "message": "user has been authenticated",
@@ -36,7 +37,7 @@ router.post('/signin', async (req, res) => {
         "token": token
       })
     } else {
-      res.send(400).json({ "message": "invalid credentials" })
+      res.status(400).json({ "message": "INCORRECT_PASSWORD" })
     }
   } catch (err) {
     console.error(err)

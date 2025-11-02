@@ -16,7 +16,6 @@ router.delete('/deleteuser',auth, async(req, res) => {
   await Users.deleteOne({_id:req.auth.userId})
   await Goals.deleteOne({userId:req.auth.userId})
   await Study.deleteOne({userId:req.auth.userId})   
-  req.auth.destroy() 
   res.status(200).json({'message':'The user has been deleted successfully'})
   } catch (error) {
     console.error(error)
