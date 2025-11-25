@@ -7,7 +7,7 @@ const Users = require("../models/user-model")
 const Goals = require("../models/goal-model")
 const StudyInfo = require("../models/study-model")
 const router = express.Router()
-const mongoDB = require("mongodb")
+const {GridFSBucket, ObjectId} = require("mongodb")
 const mongoose = require("mongoose")
 const upload = multer({ storage: multer.memoryStorage() })
 const jwt = require('jsonwebtoken')
@@ -39,35 +39,78 @@ router.patch('/deletestudygoal', auth, async (req, res) => {
 })
 router.patch('/syncbooks', auth, upload.array('books'), async (req, res) => {
   try {
-    const files = req.files // Array of uploaded files
-    const booksData = JSON.parse(req.body.books) // Book metadata
-    console.log(booksData)
-    for (const book of booksData) {
-      const entry = { ...book }
-      delete entry.filePath
-      delete entry.synced
-      entry.title = entry.name || entry.filename;
-      if (entry.fileType == 'epub') {
-        delete entry.page
-        delete entry.totalPages
-      } else if (entry.fileType == 'pdf') {
-        entry.pageCount = entry.totalPages
-        delete entry.epubcfi
-      }
-      const test = await Users.findOneAndUpdate({ _id: req.auth.userId }, {
-        $addToSet: {
-          currentBooks: entry
-        }
-      })
+    const files = req.files;
+    const booksData = JSON.parse(req.body.books);
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+    if (files.length !== booksData.length) {
+      return res.status(400).json({ message: "Files and metadata count mismatch" });
     }
 
+    const db = mongoose.connection.db;
+    const bucket = new GridFSBucket(db, { bucketName: "books" });
 
-    res.status(200).json({ message: "Books synced successfully" })
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const book = booksData[i];
+
+      const uploadStream = bucket.openUploadStream(file.originalname, {
+        contentType: file.mimetype,
+        metadata: {
+          user: req.auth.userId,
+          originalName: file.originalname,
+        },
+      });
+
+      await uploadStream.end(file.buffer);
+
+      // After upload is complete, assign the GridFS file ID
+      book.syncId = uploadStream.id.toString();
+    }
+
+    // Now save cleaned metadata to user's currentBooks
+    for (const book of booksData) {
+      const entry = { ...book };
+
+      // Clean up unnecessary fields
+      delete entry.filePath;
+      delete entry.synced;
+      delete entry.name;
+      delete entry.filename;
+
+      entry.title = entry.title || entry.originalname;
+
+      if (entry.fileType === 'epub') {
+        delete entry.page;
+        delete entry.totalPages;
+      } else if (entry.fileType === 'pdf') {
+        entry.pageCount = entry.totalPages;
+        delete entry.epubcfi;
+        delete entry.totalPages;
+      }
+
+      await Users.findOneAndUpdate(
+        { _id: req.auth.userId },
+        { $addToSet: { currentBooks: entry } },
+        { new: true }
+      );
+    }
+
+    return res.status(200).json({
+      message: "Books synced successfully",
+      syncedCount: files.length
+    });
+
   } catch (err) {
-    console.error('Error in /syncbooks:', err)
-    res.status(500).json({ message: "Operation failed", error: err.message })
+    console.error('Error in /syncbooks:', err);
+    return res.status(500).json({
+      message: "Sync failed",
+      error: err.message
+    });
   }
-})
+});
 router.patch('/syncpages', auth, async (req, res) => {
   try {
     const { location, page, name, type, progress } = req.body
