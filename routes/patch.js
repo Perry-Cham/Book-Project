@@ -7,6 +7,8 @@ const Users = require("../models/user-model")
 const Goals = require("../models/goal-model")
 const StudyInfo = require("../models/study-model")
 const router = express.Router()
+const mongoDB = require("mongodb")
+const mongoose = require("mongoose")
 const upload = multer({ storage: multer.memoryStorage() })
 const jwt = require('jsonwebtoken')
 const { expressjwt: expressJwt } = require('express-jwt');
@@ -95,11 +97,12 @@ router.patch('/completegoal', auth, async (req, res) => {
   console.log(req.body, req.auth.userId)
   try {
     const userId = req.auth.userId
-    await StudyInfo.updateOne({ userId: req.auth.userId, 'goals.$.subject': req.body.subject }, { $set: { 'goals.$.topics': req.body.topics } })
-    console.log(subject)
+    const user = await Users.findOne({_id:req.auth.userId})
+ const subject = await StudyInfo.findOneAndUpdate({ userId: req.auth.userId, 'goals.subject': req.body.subject }, { $set: { 'goals.$.topics': req.body.topics } })
+    console.log(subject, user)
     res.status(200).json({ message: "the operation completed successfully" })
-  } catch (error) {
-    errorResponse(err, res)
+  } catch (err) {
+    errorResponse(err)
   }
 })
 module.exports = router
