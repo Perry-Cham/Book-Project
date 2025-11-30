@@ -127,7 +127,7 @@ router.post('/setgoal',auth, async (req, res) => {
   try {
     const startDate = new Date();
     let endDate;
-    console.log(req.body, startDate)
+   
     if (req.body.unit == "day") {
       endDate = addDays(startDate, parseInt(req.body.duration))
     }
@@ -163,12 +163,12 @@ router.post('/addcustombook',auth, async (req, res) => {
   if (!title || !author || !pageCount) {
     return res.status(400).json({ message: 'Title, author, and page count are required' });
   }
-  console.log(req.body)
+
   try {
     // Fetch book data from Open Library API
     const query = `title:${encodeURIComponent(title)} author:${encodeURIComponent(author)}`;
     const response = await axios.get(`https://openlibrary.org/search.json?q=${query}&limit=1&fields=title,author_name,cover_i`);
-    console.log(response.data)
+    
     const docs = response.data.docs;
 
     let coverUrl = null;
@@ -190,7 +190,7 @@ router.post('/addcustombook',auth, async (req, res) => {
       // Add other fields if needed, e.g., mainBook: null for custom books
     };
     // Add to user's currentBooks
-    console.log(newBook)
+
     await Users.updateOne({ _id: req.auth.userId }, { $addToSet: { currentBooks: newBook } });
 
     res.status(200).json({ message: 'Custom book added successfully' });
@@ -278,7 +278,7 @@ router.post('/settimetable',auth, async (req, res) => {
   }
 })
 router.post('/setstudygoal',auth, async (req, res) => {
-  console.log(req.body)
+
   try {
     const entry =  await StudyInfo.findOne({ userId: req.auth.userId });
     if(entry){await StudyInfo.updateOne({ userId: req.auth.userId }, { $addToSet: { goals: req.body } })}else{
