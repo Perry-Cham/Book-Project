@@ -68,17 +68,7 @@ router.get('/download/file/:id', async (req, res) => {
 
         // Set headers
         if (book.file.contentType) res.setHeader('Content-Type', book.file.contentType);
-        // Determine filename — prefer originalName/filename from metadata, fall back to title and add extension when missing
-        let filename = book.file.originalName || book.originalname || book.filename || book.title || `${id}`;
-        // Ensure filename has an extension; if missing, attempt to guess from contentType
-        if (filename && !filename.includes('.')) {
-          const ct = (book.file.contentType || '').toLowerCase();
-          if (ct.includes('pdf')) filename += '.pdf';
-          else if (ct.includes('epub')) filename += '.epub';
-          else if (ct.includes('zip')) filename += '.zip';
-          else if (ct.includes('text')) filename += '.txt';
-          else filename += '.bin';
-        }
+        const filename = book.title || book.file.originalName || `${id}`;
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
         const downloadStream = bucket.openDownloadStream(fileId);
@@ -120,17 +110,8 @@ router.get('/download/current/file/:id', auth, async (req, res) => {
         const fileId = new ObjectId(book.file.key);
 
         if (book.file.contentType) res.setHeader('Content-Type', book.file.contentType);
-        // Prefer the filename present on the user's currentBooks entry (originalname/filename) so extension is preserved
-        let filename = book.originalname || book.filename || book.title || `book-${req.params.id}`;
-        if (filename && !filename.includes('.')) {
-          const ct = (book.file.contentType || '').toLowerCase();
-          if (ct.includes('pdf')) filename += '.pdf';
-          else if (ct.includes('epub')) filename += '.epub';
-          else if (ct.includes('zip')) filename += '.zip';
-          else if (ct.includes('text')) filename += '.txt';
-          else filename += '.bin';
-        }
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        const filename = book.title || book.originalname || `book-${req.params.id}`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename+ "." + book.fileType}"`);
 
         const downloadStream = bucket.openDownloadStream(fileId);
         downloadStream.on('error', (err) => {
