@@ -67,7 +67,15 @@ router.patch('/syncbooks', auth, upload.array('books'), async (req, res) => {
       await uploadStream.end(file.buffer);
 
       // After upload is complete, assign the GridFS file ID
-      book.syncId = uploadStream.id.toString();
+      book.file = {
+        provider:"GridFs",
+        bucket:"books",
+        key:uploadStream.id.toString(),
+        url:null,
+        contentType:file.mimeType,
+        size:file.size
+      }
+    //  book.syncId = uploadStream.id.toString();
     }
 
     // Now save cleaned metadata to user's currentBooks
@@ -76,7 +84,7 @@ router.patch('/syncbooks', auth, upload.array('books'), async (req, res) => {
 
       // Clean up unnecessary fields
       delete entry.filePath;
-      delete entry.synced;
+      entry.synced = true
       delete entry.name;
       delete entry.filename;
 

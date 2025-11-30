@@ -14,11 +14,12 @@ const schema = new mongoose.Schema({
     fileType:String,
     epubcfi:String,
     progress:Number,
+    synced:Boolean,
     file: {
         provider: { type: String },
         bucket: { type: String },    
         key: { type: String },            
-        url: { type: String },      
+        url: { type: String || null},      
         contentType: { type: String },
         size: { type: Number },
         etag: { type: String },    

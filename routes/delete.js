@@ -4,6 +4,8 @@ const Users = require("../models/user-model")
 const Goals = require("../models/goal-model")
 const Study = require("../models/study-model")
 const router = express.Router()
+const mongoose = require("mongoose")
+const {GridFsBucket,ObjectId} = require("mongodb")
 const jwt = require('jsonwebtoken')
 const { expressjwt: expressJwt } = require('express-jwt');
 const auth = expressJwt({
@@ -25,7 +27,16 @@ router.delete('/deleteuser',auth, async(req, res) => {
 router.delete('/deletecurrent/:id',auth, async (req, res) => {
   const id = req.params.id;
   try {
+    const user = await Users.findOne({_id:req.autg.userId})
+    const book = user.currentBooks.find(b => b._id === req.params.id)
+    if(book?.synced){
+      const file = book?.file?.key
+      const db = mongoose.connection.db
+      const bucket = new GridFsBucket(db, {bucketName: "books"})
+      await bucket.delete(file)
+    }
     await Users.updateOne({ _id: req.auth.userId }, { $pull: { currentBooks: { _id: req.params.id } } })
+    
     res.status(200).json({ "message": "The operation completed successfully" })
   } catch (err) {
     console.error(err)

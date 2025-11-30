@@ -38,6 +38,15 @@ router.get('/download/:id', async (req, res) => {
   }
 
 })
+router.get('/downloadcurrent/:id',auth,async(req,res)=>{
+  try{
+    const book = Users.findOne({_id:req.auth.id, currentBooks._id: req.params.id},{currentBooks:1, _id:0})
+    
+  }catch(err){
+    console.error(err)
+    res.status(404).json({ "message": `session has not been found` })
+  }
+})
 router.get('/getsession',auth, async (req, res) => {
   const id = req.auth.userId;
   const user = await Users.findOne({ _id: id });
