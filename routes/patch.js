@@ -102,7 +102,7 @@ router.patch("/syncbooks", auth, upload.array("books"), async (req, res) => {
 
     // Now save cleaned metadata to user's currentBooks
     for (const book of booksData) {
-      console.log(book)
+      console.log(book);
       const entry = { ...book };
       entry.title = entry.name || entry.filename;
       // Clean up unnecessary fields
@@ -184,6 +184,32 @@ router.patch("/completegoal", auth, async (req, res) => {
     res.status(200).json({ message: "the operation completed successfully" });
   } catch (err) {
     errorResponse(err);
+  }
+});
+router.patch("/addstudytopic", auth, async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+    const subject = req.body.subject;
+    const topic = req.body.topic;
+
+    const subjectEntry = await StudyInfo.findOne({
+      userId: userId,
+      "goals.subject": subject,
+    });
+
+    if (!subjectEntry) {
+      return res
+        .status(404)
+        .json({ message: "Subject not found in user's goals" });
+    }
+
+    await StudyInfo.updateOne(
+      { userId: userId, "goals.subject": subject },
+      { $addToSet: { "goals.$.topics": { name: topic, completed: false } } }
+    );
+    res.status(200).json({ message: "the operation completed successfully" });
+  } catch (err) {
+    errorResponse(err, res);
   }
 });
 module.exports = router;
