@@ -41,16 +41,7 @@ router.get('/download/:id', async (req, res) => {
   }
 
 })
-router.get('/downloadcurrent/:id',auth,async(req,res)=>{
-  try{
-    // return the user's current book metadata (unchanged)
-    const book = Users.findOne({_id:req.auth.id, 'currentBooks._id': req.params.id},{currentBooks:1, _id:0})
-    
-  }catch(err){
-    console.error(err)
-    res.status(404).json({ "message": `session has not been found` })
-  }
-})
+
 
 // Stream a Book collection item file (if available) or redirect to Standard Ebooks
 router.get('/download/file/:id', async (req, res) => {
@@ -65,12 +56,7 @@ router.get('/download/file/:id', async (req, res) => {
         const db = mongoose.connection.db;
         const bucket = new GridFSBucket(db, { bucketName: book.file.bucket || 'books' });
         const fileId = new ObjectId(book.file.key);
-
-        // Set headers
-        if (book.file.contentType) res.setHeader('Content-Type', book.file.contentType);
-        const filename = book.title || book.file.originalName || `${id}`;
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
+        
         const downloadStream = bucket.openDownloadStream(fileId);
         downloadStream.on('error', (err) => {
           console.error('GridFS download error:', err);
@@ -93,15 +79,16 @@ router.get('/download/file/:id', async (req, res) => {
 });
 
 // Authenticated route to stream a user's currentBook (for synced books)
-router.get('/download/current/file/:id', auth, async (req, res) => {
+router.get('/download/current/file/:id', async (req, res) => {
   try {
-    const userId = req.auth.userId;
+    const payload = jwt.verify(req.query.token, process.env.JWT_KEY);
+    const userId = payload.userId;
     // find the user's currentBooks entry by id
     const user = await Users.findOne({ _id: userId }, { currentBooks: 1 });
     if (!user) return res.status(404).json({ message: 'User not found' });
-
     const book = user.currentBooks.find(b => String(b._id) === String(req.params.id));
     if (!book) return res.status(404).json({ message: 'Book not found in current books' });
+    console.log(book)
 
     if (book.synced && book.file && book.file.provider === 'GridFs' && book.file.key) {
       try {
