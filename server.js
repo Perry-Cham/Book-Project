@@ -12,7 +12,7 @@ const pRouter = require('./routes/post')
 const dRouter = require('./routes/delete')
 const patchRouter = require('./routes/patch')
 
-const origins = ["http://localhost:5173", "https://ps-books.netlify.app", "https://studify.vercel.app"]
+const origins = ["http://localhost:5173", "https://ps-books.netlify.app", "https://ps-books.vercel.app"]
 App.use(cors({
   origin: function (origin, callback) {
     if (!origin || origins.includes(origin)) {
