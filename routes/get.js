@@ -238,4 +238,27 @@ function checkGenre(data){
       }
   }
 }
+router.get("/profilePicture",auth, async (req, res) => {
+try{
+  const user = await Users.findOne({_id:req.auth.userId},{profilePicture:1,_id:0})
+  console.log("Hello");
+  if(user.profilePicture){
+    const db = mongoose.connection.db;
+    const bucket = new GridFSBucket(db, { bucketName: "profilePictures" });
+    const fileId = new ObjectId(user.profilePicture);
+
+    const downloadStream = bucket.openDownloadStream(fileId);
+    downloadStream.on('error', (err) => {
+      console.error('GridFS download error:', err);
+      res.status(500).end('Failed to download file');
+    });
+    return downloadStream.pipe(res);
+  }else{
+    res.status(404).json({message:"User does not have a profile picture"})
+  }
+}catch(err){
+  console.error(err)
+  res.status(500).json({message:"Internal Server Error"})
+}
+})
 module.exports = router;

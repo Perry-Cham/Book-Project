@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const schema = new mongoose.Schema({
   name:String,
   password:String,
+  profilePicture:String || null,
   savedBooks:[{type: mongoose.Schema.Types.ObjectId, ref: 'Book'}],
   currentBooks:[
     {
